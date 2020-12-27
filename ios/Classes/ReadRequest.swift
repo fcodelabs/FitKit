@@ -31,7 +31,7 @@ class ReadRequest {
         }
 
         guard let values = HKSampleType.fromDartType(type: type),
-              let sampleType = values.sampleType as? HKSampleType,
+              let sampleType = values.sampleType,
               let unit = values.unit as? HKUnit else {
             throw UnsupportedError(message: "type \(type) is not supported");
         }
