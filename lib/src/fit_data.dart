@@ -26,3 +26,24 @@ class FitData {
   String toString() =>
       'FitData(value: $value, dateFrom: $dateFrom, dateTo: $dateTo, source: $source, userEntered: $userEntered)';
 }
+
+class FitDataStatistics {
+  final num value;
+  final DateTime dateFrom;
+  final DateTime dateTo;
+
+  FitDataStatistics(
+    this.value,
+    this.dateFrom,
+    this.dateTo,
+  );
+
+  FitDataStatistics.fromJson(Map<dynamic, dynamic> json)
+      : value = json['value'],
+        dateFrom = DateTime.fromMillisecondsSinceEpoch(json['date_from']),
+        dateTo = DateTime.fromMillisecondsSinceEpoch(json['date_to']);
+
+  @override
+  String toString() =>
+      'FitDataStatistics(value: $value, dateFrom: $dateFrom, dateTo: $dateTo)';
+}
