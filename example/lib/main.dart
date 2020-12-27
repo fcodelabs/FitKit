@@ -13,6 +13,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String result = '';
   Map<DataType, List<FitData>> results = Map();
+  Map<DataType, FitDataStatistics> resultsStat = Map();
   bool permissions;
 
   RangeValues _dateRange = RangeValues(1, 8);
@@ -85,6 +86,34 @@ class _MyAppState extends State<MyApp> {
     setState(() {});
   }
 
+  Future<void> readStatistics() async {
+    results.clear();
+
+    try {
+      permissions = await FitKit.requestPermissions(DataType.values);
+      if (!permissions) {
+        result = 'requestPermissions: failed';
+      } else {
+        try {
+          // Added for step count
+          resultsStat[DataType.STEP_COUNT] = await FitKit.readStatistics(
+            DataType.STEP_COUNT,
+            dateFrom: _dateFrom,
+            dateTo: _dateTo,
+          );
+        } on UnsupportedException catch (e) {
+          resultsStat[e.dataType] = null;
+        }
+        result = 'readAll: success';
+      }
+    } catch (e) {
+      print(e);
+      result = 'readAll: $e';
+    }
+
+    setState(() {});
+  }
+
   Future<void> hasPermissions() async {
     try {
       permissions = await FitKit.hasPermissions(DataType.values);
@@ -99,8 +128,7 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final items =
-        results.entries.expand((entry) => [entry.key, ...entry.value]).toList();
+    final items = results.entries.expand((entry) => [entry.key, ...entry.value]).toList();
 
     return MaterialApp(
       home: Scaffold(
@@ -113,8 +141,7 @@ class _MyAppState extends State<MyApp> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(padding: EdgeInsets.symmetric(vertical: 8)),
-              Text(
-                  'Date Range: ${_dateToString(_dateFrom)} - ${_dateToString(_dateTo)}'),
+              Text('Date Range: ${_dateToString(_dateFrom)} - ${_dateToString(_dateTo)}'),
               Text('Limit: $_limit'),
               Text('Permissions: $permissions'),
               Text('Result: $result'),
@@ -216,8 +243,8 @@ class _MyAppState extends State<MyApp> {
           child: FlatButton(
             color: Theme.of(context).accentColor,
             textColor: Colors.white,
-            onPressed: () => revokePermissions(),
-            child: Text('Revoke permissions'),
+            onPressed: () => readStatistics(),
+            child: Text('Read Statistics'),
           ),
         ),
       ],
