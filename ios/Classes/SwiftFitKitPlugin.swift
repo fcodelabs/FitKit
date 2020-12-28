@@ -37,6 +37,9 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin {
             } else if (call.method == "read") {
                 let request = try ReadRequest.fromCall(call: call)
                 read(request: request, result: result)
+            } else if (call.method == "readStatistics") {
+                let request = try ReadRequest.fromCall(call: call)
+                readStatistics(request: request, result: result)
             } else {
                 result(FlutterMethodNotImplemented)
             }
@@ -115,6 +118,17 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin {
         }
     }
 
+    private func readStatistics(request: ReadRequest, result: @escaping FlutterResult) {
+        requestAuthorization(sampleTypes: [request.sampleType]) { success, error in
+            guard success else {
+                result(error)
+                return
+            }
+
+            self.readSampleStatistics(request: request, result: result)
+        }
+    }
+
     private func requestAuthorization(sampleTypes: Array<HKSampleType>, completion: @escaping (Bool, FlutterError?) -> Void) {
         healthStore!.requestAuthorization(toShare: nil, read: Set(sampleTypes)) { (success, error) in
             guard success else {
@@ -155,6 +169,33 @@ public class SwiftFitKitPlugin: NSObject, FlutterPlugin {
                     "user_entered": sample.metadata?[HKMetadataKeyWasUserEntered] as? Bool == true
                 ]
             })
+        }
+        healthStore!.execute(query)
+    }
+
+    private func readSampleStatistics(request: ReadRequest, result: @escaping FlutterResult) {
+        print("readSample: \(request.type)")
+        // returns cummilative sum for given time
+        guard let values = HKQuantityType.fromDartTypeToQuantity(type: request.type),
+              let quantityType = values.quantityType,
+              let unit = values.unit as? HKUnit else {
+            fatalError("Something went wrong retrieving quantity type")
+        }
+        let predicate = HKQuery.predicateForSamples(withStart: request.dateFrom, end: request.dateTo, options: .strictStartDate)
+
+        let query = HKStatisticsQuery(quantityType: quantityType, quantitySamplePredicate: predicate, options: .cumulativeSum) {
+            _, samplesOrNil, error in
+
+            guard let statistic = samplesOrNil else {
+                result(FlutterError(code: self.TAG, message: "Results are null", details: error.debugDescription))
+                return
+            }
+            let resultStatistics: NSDictionary = [
+                "value": samplesOrNil?.sumQuantity()?.doubleValue(for: unit) ?? -1,
+                "date_from": Int(statistic.startDate.timeIntervalSince1970 * 1000),
+                "date_to": Int(statistic.endDate.timeIntervalSince1970 * 1000),
+            ]
+            result(resultStatistics)
         }
         healthStore!.execute(query)
     }

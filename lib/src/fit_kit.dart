@@ -52,6 +52,34 @@ class FitKit {
         );
   }
 
+  /// iOS related method. This calculate the sum of statistic over the set of matching samples.
+  /// Do not call this method on android. It will return platform exception.
+  /// Currently this is working for data types of STEP_COUNT, DISTANCE, STAND_TIME, EXERCISE_TIME (addable datatypes)
+  static Future<FitDataStatistics> readStatistics(
+    DataType type, {
+    DateTime dateFrom,
+    DateTime dateTo,
+  }) async {
+    if (Platform.isAndroid) throw PlatformException(code: 'unsupported on android');
+    return await _channel
+        .invokeMethod('readStatistics', {
+          "type": _dataTypeToString(type),
+          "date_from": dateFrom?.millisecondsSinceEpoch ?? 1,
+          "date_to": (dateTo ?? DateTime.now()).millisecondsSinceEpoch,
+          "limit": null,
+        })
+        .then(
+          (response) => FitDataStatistics.fromJson(response),
+        )
+        .catchError(
+          (_) => throw UnsupportedException(type),
+          test: (e) {
+            if (e is PlatformException) return e.code == 'unsupported';
+            return false;
+          },
+        );
+  }
+
   static Future<FitData> readLast(DataType type) async {
     return await read(type, limit: 1)
         .then((results) => results.isEmpty ? null : results[0]);
