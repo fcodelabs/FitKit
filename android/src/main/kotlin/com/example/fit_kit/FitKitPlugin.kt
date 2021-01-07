@@ -1,15 +1,14 @@
 package com.example.fit_kit
 
 import android.app.Activity
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.fitness.Fitness
 import com.google.android.gms.fitness.FitnessOptions
-import com.google.android.gms.fitness.data.DataPoint
-import com.google.android.gms.fitness.data.DataSet
-import com.google.android.gms.fitness.data.Field
-import com.google.android.gms.fitness.data.Session
+import com.google.android.gms.fitness.data.*
 import com.google.android.gms.fitness.request.DataReadRequest
 import com.google.android.gms.fitness.request.SessionReadRequest
 import com.google.android.gms.fitness.result.DataReadResponse
@@ -19,6 +18,9 @@ import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 
 
@@ -53,6 +55,7 @@ class FitKitPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onMethodCall(call: MethodCall, result: Result) {
         try {
             when (call.method) {
@@ -64,6 +67,8 @@ class FitKitPlugin(private val registrar: Registrar) : MethodCallHandler {
                     val request = PermissionsRequest.fromCall(call)
                     requestPermissions(request, result)
                 }
+                "startRecordAPI" -> startRecordAPI(result)
+                "listRecordAPI" -> listRecordAPI(result)
                 "revokePermissions" -> revokePermissions(result)
                 "read" -> {
                     val request = ReadRequest.fromCall(call)
@@ -77,6 +82,8 @@ class FitKitPlugin(private val registrar: Registrar) : MethodCallHandler {
             result.error(TAG, e.message, null)
         }
     }
+
+
 
     private fun hasPermissions(request: PermissionsRequest, result: Result) {
         val options = FitnessOptions.builder()
@@ -132,6 +139,72 @@ class FitKitPlugin(private val registrar: Registrar) : MethodCallHandler {
                         result.error(TAG, e.message, null)
                     }
                 }
+    }
+
+    private fun startRecordAPI(result: Result) {
+        Fitness.getRecordingClient(registrar.context(), GoogleSignIn.getLastSignedInAccount(registrar.context())!!)
+                .subscribe(DataType.TYPE_STEP_COUNT_DELTA)
+                .addOnSuccessListener {
+                    Log.d(TAG, "Started Recording API")
+                    result.success(true)
+                }
+                .addOnFailureListener { e ->
+                    result.error(TAG, "There was a problem started recording API.", e)
+                }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun listRecordAPI(result: Result) {
+        Fitness.getRecordingClient(registrar.context(), GoogleSignIn.getLastSignedInAccount(registrar.context())!!)
+                .listSubscriptions()
+                .addOnSuccessListener { subscriptions ->
+                    for (sc in subscriptions) {
+                        val dt = sc.dataType
+                        Log.d(TAG, "Active subscription for data type: ${dt?.name}")
+                    }
+                    if (subscriptions.count() > 0) result.success(true)
+                    else result.success(false)
+                }
+                .addOnFailureListener{ e ->
+                    result.error(TAG, "There was a problem listing recording API.", e)
+                }
+//        val startTime = LocalDate.now().atStartOfDay(ZoneId.systemDefault()).minusDays(1)
+//        val endTime = LocalDate.now().atStartOfDay(ZoneId.systemDefault())
+
+//        Fitness.getHistoryClient(registrar.context(), GoogleSignIn.getLastSignedInAccount(registrar.context())!!)
+//                .readDailyTotalFromLocalDevice(DataType.TYPE_STEP_COUNT_DELTA)
+//                .addOnSuccessListener { res -> val total = res.dataPoints.firstOrNull()?.getValue(Field.FIELD_STEPS)?.asInt() ?: 0; Log.d(TAG, "readTotal: $total")}
+//                .addOnFailureListener { e ->
+//                    Log.d(TAG, "There was a problem getting steps.", e)
+//                }
+//        val readRequest =
+//                DataReadRequest.Builder()
+//                        .setTimeRange(startTime.toEpochSecond(), endTime.toEpochSecond(), TimeUnit.SECONDS)
+//                        .bucketByTime(1, TimeUnit.DAYS)
+//                        .aggregate(DataType.TYPE_MOVE_MINUTES)
+//                        .build()
+//
+//        Fitness.getHistoryClient(registrar.context(), GoogleSignIn.getLastSignedInAccount(registrar.context())!!)
+//                .readData(readRequest)
+//                .addOnSuccessListener { response ->
+//                    for (dataSet in response.buckets.flatMap { it.dataSets }) {
+//                        dumpDataSet(dataSet)
+//                    }
+//                }
+//                .addOnFailureListener { e ->
+//                    Log.e(TAG, "There was a problem getting steps.", e)
+//                }
+    }
+
+    private fun dumpDataSet(dataSet: DataSet) {
+        Log.i(TAG, "Data returned for Data type: ${dataSet.dataType.name}")
+        for (dp in dataSet.dataPoints) {
+            Log.d(TAG,"Data point:")
+            Log.d(TAG,"\tType: ${dp.dataType.name}")
+            for (field in dp.dataType.fields) {
+                Log.d(TAG,"\tField: ${field.name.toString()} Value: ${dp.getValue(field)}")
+            }
+        }
     }
 
     private fun read(request: ReadRequest<*>, result: Result) {
