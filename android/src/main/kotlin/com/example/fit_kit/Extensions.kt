@@ -9,6 +9,7 @@ fun String.fromDartType(): Type? {
     return when (this) {
         "heart_rate" -> Type.Sample(DataType.TYPE_HEART_RATE_BPM)
         "step_count" -> Type.Sample(DataType.TYPE_STEP_COUNT_DELTA)
+        "move_minutes" -> Type.Sample(DataType.TYPE_MOVE_MINUTES)
         "height" -> Type.Sample(DataType.TYPE_HEIGHT)
         "weight" -> Type.Sample(DataType.TYPE_WEIGHT)
         "distance" -> Type.Sample(DataType.TYPE_DISTANCE_DELTA)
