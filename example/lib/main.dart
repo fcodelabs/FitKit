@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 
 import 'package:fit_kit/fit_kit.dart';
 import 'package:flutter/material.dart';
@@ -161,7 +160,7 @@ class _MyAppState extends State<MyApp> {
                         padding: EdgeInsets.symmetric(vertical: 8),
                         child: Text(
                           '$item - ${results[item].length}',
-                          style: Theme.of(context).textTheme.title,
+                          style: Theme.of(context).textTheme.headline6,
                         ),
                       );
                     } else if (item is FitData) {
