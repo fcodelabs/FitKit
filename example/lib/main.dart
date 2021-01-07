@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:fit_kit/fit_kit.dart';
 import 'package:flutter/material.dart';
@@ -15,6 +16,7 @@ class _MyAppState extends State<MyApp> {
   Map<DataType, List<FitData>> results = Map();
   Map<DataType, FitDataStatistics> resultsStat = Map();
   bool permissions;
+  bool record;
 
   RangeValues _dateRange = RangeValues(1, 8);
   List<DateTime> _dates = List<DateTime>();
@@ -145,6 +147,7 @@ class _MyAppState extends State<MyApp> {
               Text('Limit: $_limit'),
               Text('Permissions: $permissions'),
               Text('Result: $result'),
+              Text('Recording API: $record'),
               _buildDateSlider(context),
               _buildLimitSlider(context),
               _buildButtons(context),
@@ -243,8 +246,28 @@ class _MyAppState extends State<MyApp> {
           child: FlatButton(
             color: Theme.of(context).accentColor,
             textColor: Colors.white,
-            onPressed: () => readStatistics(),
-            child: Text('Read Statistics'),
+            onPressed: () => FitKit.startAndroidRecordAPI(),
+            child: Text(
+              'Start Recording',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+        Padding(padding: EdgeInsets.symmetric(horizontal: 4)),
+        Expanded(
+          child: FlatButton(
+            color: Theme.of(context).accentColor,
+            textColor: Colors.white,
+            onPressed: () async {
+              final result = await FitKit.listAndroidRecordAPI();
+              setState(() {
+                record = result;
+              });
+            },
+            child: Text(
+              'List Recording',
+              textAlign: TextAlign.center,
+            ),
           ),
         ),
       ],
